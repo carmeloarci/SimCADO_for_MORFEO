@@ -631,7 +631,7 @@ class OpticalTrain(object):
 
         elif isinstance(self.cmds["SCOPE_PSF_FILE"], psf.PSFCube):
             psf_m1 = self.cmds["SCOPE_PSF_FILE"]
-            #logging.debug("Using PSF: " + self.cmds["SCOPE_PSF_FILE"])
+            #logging.debug("gen_master_psf in optics.py: Using PSF: " + self.cmds["SCOPE_PSF_FILE"])
 
         elif isinstance(self.cmds["SCOPE_PSF_FILE"], str):
             if self.cmds.verbose:
@@ -642,6 +642,7 @@ class OpticalTrain(object):
 
                 hdr = fits.getheader(self.cmds["SCOPE_PSF_FILE"], 0)
                 if "ETYPE" in hdr and hdr["ETYPE"] == "FVPSF":
+                    logging.debug('C.A. FVPSF')
                     fname = self.cmds["SCOPE_PSF_FILE"]
                     psf_m1 = psf.FieldVaryingPSF(filename=fname,
                                                  **self.cmds.cmds)
@@ -681,6 +682,7 @@ class OpticalTrain(object):
         """
         Keywords:
         """
+        #print('C.A. GaussianPSF',self.cmds["SCOPE_JITTER_FWHM"])
         jitter_psf = psf.GaussianPSF(fwhm=self.cmds["SCOPE_JITTER_FWHM"],
                                      pix_res=self.cmds.pix_res)
         return jitter_psf

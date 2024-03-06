@@ -238,7 +238,7 @@ class PSF(object):
             >>> new_PSF = old_PSF.resample(new_pix_res)
 
         """
-        scale_factor = self.pix_res / np.float(new_pix_res)
+        scale_factor = self.pix_res / float(new_pix_res)
         new_arr = spi.zoom(self.array, scale_factor, order=1)
         new_arr *= np.sum(self.array) / np.sum(new_arr)
 
@@ -766,7 +766,7 @@ class PSFCube(object):
         # TODO: Check whether this makes sense
         self.psf_slices = [psf.resample(new_pix_res) for psf in self.psf_slices]
 
-    def export_to_fits(self, filename, clobber=True):
+    def export_to_fits(self, filename, overwrite=True):
         """
         Export the psf to a FITS file for later use
 
@@ -800,7 +800,7 @@ class PSFCube(object):
 
             ext_list.append(hdu)
 
-        ext_list.writeto(filename, clobber=clobber, checksum=True)
+        ext_list.writeto(filename, overwrite=overwrite, checksum=True)
 
     def convolve(self, kernel_list):
         """
@@ -1566,7 +1566,7 @@ def make_foreign_PSF_cube(fnames, out_name=None, window=None, pix_res_orig=None,
     if out_name is None:
         return hdu_list
     else:
-        hdu_list.writeto(out_name, clobber=True)
+        hdu_list.writeto(out_name, overwrite=True)
 
 
 
@@ -1716,7 +1716,7 @@ def poppy_ao_psf(strehl, mode="wide", plan="A", size=1024, filename=None,
         return hdu_list
     else:
         print("Writing to", filename)
-        hdu_list.writeto(filename, clobber=True)
+        hdu_list.writeto(filename, overwrite=True)
 
 
 def seeing_psf(fwhm=0.8, psf_type="moffat", size=1024, pix_res=0.004,
@@ -1786,7 +1786,7 @@ def seeing_psf(fwhm=0.8, psf_type="moffat", size=1024, pix_res=0.004,
         return hdu_list
     else:
         print("Writing to", filename)
-        hdu_list.writeto(filename, clobber=True)
+        hdu_list.writeto(filename, overwrite=True)
 
 
 def poppy_eelt_psf(plan="A", wavelength=2.2, mode="wide", size=1024,
@@ -1927,7 +1927,7 @@ def poppy_eelt_psf(plan="A", wavelength=2.2, mode="wide", size=1024,
         return hdu_list
     else:
         print("Writing to", filename)
-        hdu_list.writeto(filename, clobber=True)
+        hdu_list.writeto(filename, overwrite=True)
 
 
 

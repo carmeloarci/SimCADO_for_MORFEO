@@ -67,7 +67,7 @@ def run(src, mode="wide", cmds=None, opt_train=None, fpa=None,
 
     if cmds is None:
         cmds = UserCommands(sim_data_dir=sim_data_dir)
-        cmds["INST_FILTER_TC"] = "Ks"
+        cmds["INST_FILTER_TC"] = "TC_filter_Ks.dat" # C.A. changed from "Ks"
 
         if detector_layout.lower() in ("tiny", "small", "centre", "center",
                                        "full", "no_gaps"):
@@ -99,11 +99,16 @@ def run(src, mode="wide", cmds=None, opt_train=None, fpa=None,
     cmds.update(kwargs)
 
     if opt_train is None:
+        print('CA genereating optical train')
         opt_train = OpticalTrain(cmds)
     if fpa is None:
+        #C.A. ADD read_out_type
+        print("--------READ OUT SCHEME-------------")
+        print(cmds["FPA_READ_OUT_SCHEME"])
+        if cmds["FPA_READ_OUT_SCHEME"] is not None:
+            read_out_type = cmds["FPA_READ_OUT_SCHEME"]
+        print("------------------------------------")
         fpa = Detector(cmds, small_fov=False)
-
-
 
     print("Detector layout")
     print(fpa.layout)
@@ -116,11 +121,11 @@ def run(src, mode="wide", cmds=None, opt_train=None, fpa=None,
         if cmds["OBS_SAVE_ALL_FRAMES"] == "yes":
             for n in range(cmds["OBS_NDIT"]):
                 fname = filename.replace(".", str(n) + ".")
-                hdu = fpa.read_out(filename=fname, to_disk=True, OBS_NDIT=1)
+                hdu = fpa.read_out(filename=fname, to_disk=True, OBS_NDIT=1,read_out_type=read_out_type)
         else:
-            hdu = fpa.read_out(filename=filename, to_disk=True)
+            hdu = fpa.read_out(filename=filename, to_disk=True,read_out_type=read_out_type)
     else:
-        hdu = fpa.read_out()
+        hdu = fpa.read_out(read_out_type=read_out_type)
 
     if return_internals:
         return hdu, (cmds, opt_train, fpa)

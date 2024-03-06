@@ -486,5 +486,5 @@ class HXRGNoise:
         self.message('Exiting mknoise()')
 
         if o_file is not None:
-            hdu.writeto(o_file, clobber='True')
+            hdu.writeto(o_file, overwrite='True')
         return result

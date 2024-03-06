@@ -306,7 +306,8 @@ class Detector(object):
         form of a dictionary, i.e. {"OBS_DIT" : 60, "OBS_OUTPUT_DIR" : "./"}
 
         """
-
+        #print("CLASS DETECTOR")
+        #print(read_out_type)
         #removed kwargs
         self.cmds.update(kwargs)
 
@@ -368,8 +369,11 @@ class Detector(object):
                   read_out_type)
             print("DIT =", self.dit, "   NDIT =", self.ndit)
 
+
             array = self.chips[i].read_out(self.cmds,
                                            read_out_type=read_out_type)
+            if np.any(np.isnan(array) == True):
+                print("detector.py: 376. nan")
 
             ## TODO: transpose is just a hack - need to make sure
             ##       x and y are handled correctly throughout SimCADO
@@ -418,7 +422,7 @@ class Detector(object):
             hdulist.append(thishdu)
 
         if to_disk:
-            hdulist.writeto(filename, clobber=True, checksum=True)
+            hdulist.writeto(filename, overwrite=True, checksum=True)
 
         return hdulist
 
@@ -465,7 +469,7 @@ class Detector(object):
         hdu.header["SIMCADO"] = "FPA_NOISE"
 
         try:
-            hdu.writeto(filename, clobber=True, checksum=True)
+            hdu.writeto(filename, overwrite=True, checksum=True)
         except OSError:
             warnings.warn(filename+" exists and is busy. OS won't let me write")
 
@@ -776,7 +780,7 @@ class Chip(object):
             image of the chip read out
 
         """
-
+        
         # set up the read out
         self.dit      = cmds["OBS_DIT"]
         self.ndit     = int(cmds["OBS_NDIT"])
@@ -787,32 +791,52 @@ class Chip(object):
 
         if self.array is None:
             self.array = np.zeros((self.naxis1, self.naxis2), dtype=np.float32)
-
+        if np.any(np.isnan(self.array) == True):
+            print("CLASS CHIP")
+            print('ARRAY NOT A NUMBER!0789')
         # At this point, the only negatives come from the convolution.
         # Remove them for the Poisson process
         self.array[self.array < 0] = 0
         out_array = np.zeros(self.array.shape, dtype=np.float32)
+        ######## Check for NAN
+        if np.isnan(np.max(out_array)) == True:
+            print('NOT A NUMBER!')
+            
 
         ######## Multiply by Exptime
         # the different read out modes
-        if read_out_type.lower() == "superfast":
+        if np.any(np.isnan(self.array) == True):
+            print('ARRAY NOT A NUMBER!0803')
+#C.A. from here            
+        if read_out_type.lower() == "double_corr":    
+            out_array = self._read_out_non_destructive(cmds, self.dit, self.ndit)
+#C.A. to here
+        elif read_out_type.lower() == "superfast":
             out_array = self._read_out_superfast(cmds, self.dit, self.ndit)
         elif read_out_type.lower() == "non_destructive":
             out_array = self._read_out_non_destructive(cmds, self.dit, self.ndit)
         elif read_out_type.lower() == "up_the_ramp":
             out_array = self._read_out_up_the_ramp(cmds, self.dit, max_byte=2**30)
         else:
-            raise ValueError("``read_out_type`` not readable")
+            raise ValueError("``read_out_type``"+read_out_type.lower() +" not readable")
 
+        ######## Check for NAN
+        if np.isnan(np.max(out_array)) == True:
+            print('NOT A NUMBER!!')
+            
         ######## Flat fielding
         if self.flat_field is not None:
             out_array *= self.flat_field
-
+        if np.isnan(np.max(out_array)) == True:
+            print('NOT A NUMBER!!!')
         ######## Remove a constant BG level
         if cmds["OBS_REMOVE_CONST_BG"].lower() == "yes":
             bg_val = np.median(out_array)
             out_array -= bg_val
-
+        if np.isnan(np.max(out_array)) == True:
+            print('NOT A NUMBER!!!!')
+        print('CHECK')
+        print(np.max(out_array))
         return out_array
 
 
@@ -836,7 +860,8 @@ class Chip(object):
         for n in range(self.ndit):
             ro_cube = []
             for t in ro_times:
-
+                #print("0859: self.array ANY NAN?",np.any(np.isnan(self.array)))
+                #print("self.array NAN?",np.all(np.isnan(self.array)))
                 signal = self._read_out_poisson((self.array + self.dark), dit=t, ndit=1)
                 if lin_curve is not None:
                     signal, lin_curve = self._apply_linearity(signal, lin_curve,
@@ -949,7 +974,13 @@ class Chip(object):
         """
         Superfast read-out
         """
+        ######## Check for NAN
+        if np.isnan(np.max(self.array )) == True:
+            print('ARRAY NOT A NUMBER!0966')
 
+        if np.isnan(np.max(self.dark)) == True:
+            print('DARK NOT A NUMBER!0969')
+        ####### READ OUT
         signal = self._read_out_poisson(self.array + self.dark, dit, ndit)
 
         # apply the linearity curve
@@ -996,12 +1027,17 @@ class Chip(object):
         """
         # image2 holds the number of photons expected over a single
         # exposure
+        #print("IMAGE ANY NAN?",np.any(np.isnan(image)))
+        #print("IMAGE ALL NAN?",np.all(np.isnan(image)))
+
         image2 = image * dit
 
         # Check for windows systems. np.poisson is limited to 32-bit
         # C.A. added a check and a warning (also for non nt machine)
         # correct values will be restored at the returning
         poisson_limit = False
+        #print("IMAGE2 ANY NAN?",np.any(np.isnan(image2)))
+        #print("IMAGE2 ALL NAN?",np.all(np.isnan(image2)))
         if os.name == "nt":
             if np.max(image2) > 2.147E9:
                 print("_read_out_poisson : image values exceeds limit of 2.147E9")
@@ -1021,7 +1057,12 @@ class Chip(object):
         # due to too large expected photon numbers, at the expense of increased
         # execution time.
         im_st = np.zeros(np.shape(image))
+        # print(np.max(image2))
+        # print(image2.size - np.count_nonzero(np.isnan(image2)))
+        # print("ANY NAN?",np.any(np.isnan(image2)))
+        # print("ALL NAN?",np.all(np.isnan(image2)))
         for _ in range(ndit):
+            print(np.max(image2))
             im_st += np.random.poisson(image2)
 
         # Return the average image, corresponding to one DIT
@@ -1089,10 +1130,16 @@ class Chip(object):
         """
 
         if "double_corr" in scheme:
+            print("READOUT SCHEME: double_corr, "+scheme)
+            scheme = [0, self.dit]
+        elif "non_destructive" in scheme:
+            print("READOUT SCHEME: non_destructive, "+scheme)
             scheme = [0, self.dit]
         elif "up" in scheme:
+            print("READOUT SCHEME: up, "+scheme)
             scheme = np.arange(0, self.dit, self.min_dit + 1E-3)
         elif "fowl" in scheme:
+            print("READOUT SCHEME: fowl, "+scheme)
             fowl_pair = np.min((4, int(self.dit / self.min_dit) // 2))
             scheme = np.arange(0, self.dit, self.min_dit + 1E-3).tolist()
             scheme = scheme[:fowl_pair] + scheme[-fowl_pair:]

@@ -628,7 +628,7 @@ class UserCommands(object):
             raise ValueError("Pixel shifts too great (>1000), check units")
 
         # Rotate by the paralytic angle
-        int_shift = np.array(rel_shift / shift_threshold, dtype=np.int)
+        int_shift = np.array(rel_shift / shift_threshold, dtype=int)
         idx = [np.where(int_shift == i)[0][0]
                for i in np.unique(int_shift)[::-1]]
         lam_bin_edges_adc = np.array(lam[idx + [len(lam)-1]])

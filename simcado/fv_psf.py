@@ -122,7 +122,10 @@ class FieldVaryingPSF(DataContainer):
         self.current_data = None
         self.kernel = None
         self._strehl_imagehdu = None
-
+        # -------------------------------------
+        # C.A. Adding
+        self.pix_res = None
+        # -------------------------------------
         self.meta["SIM_FLUX_ACCURACY"] = 1E-2
         self.meta["SIM_SUB_PIXEL_FLAG"] = False
         self.meta['description'] = "Master psf cube from list"
@@ -178,7 +181,6 @@ class FieldVaryingPSF(DataContainer):
         # 3. pull out those psfs
         # 4. if more than one, make masks for the fov on the fov pixel scale
         # 5. make list of tuples with kernel and mask
-
         fov_wave = 0.5 * (fov.meta["wave_min"] + fov.meta["wave_max"])
         jj = utils.nearest(self.waveset, fov_wave)
         ii = self.kernel_indexes[jj]
@@ -201,7 +203,9 @@ class FieldVaryingPSF(DataContainer):
 
         # .. todo: re-scale kernel and masks to pixel_scale of FOV
         # .. todo: can this be put somewhere else to save on iterations?
-        pix_ratio = fov_pixel_scale / kernel_pixel_scale
+        # C.A. inverting pixel ratio:
+        #pix_ratio = fov_pixel_scale / kernel_pixel_scale
+        pix_ratio =  kernel_pixel_scale / fov_pixel_scale
         if abs(pix_ratio - 1) > self.meta["SIM_FLUX_ACCURACY"]:
             for ii in range(len(self.kernel)):
                 self.kernel[ii][0] = resize_array(self.kernel[ii][0], pix_ratio)
@@ -253,16 +257,16 @@ class PoorMansFOV:
         self.hdu.header["CRVAL2"] = chip.y_cen / 3600.
         self.hdu.header["CRPIX1"] = chip.naxis1 / 2.
         self.hdu.header["CRPIX2"] = chip.naxis2 / 2.
+        #print('chip.pix_res',chip.pix_res)
         self.hdu.header["CDELT1"] = chip.pix_res / 3600.
         self.hdu.header["CDELT2"] = chip.pix_res / 3600.
         self.hdu.header["CTYPE1"] = "RA---TAN"
-        self.hdu.header["CTYPE2"] = "DEC---TAN"
+        self.hdu.header["CTYPE2"] = "DEC--TAN"
         self.hdu.header["CUNIT1"] = "deg"
         self.hdu.header["CUNIT2"] = "deg"
         self.hdu.header["NAXIS"] = 2
         self.hdu.header["NAXIS1"] = chip.naxis1
         self.hdu.header["NAXIS2"] = chip.naxis2
-
         self.meta = {"wave_min": wave_min, "wave_max": wave_max}
 
 

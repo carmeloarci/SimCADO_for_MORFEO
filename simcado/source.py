@@ -377,7 +377,29 @@ class Source(object):
                     from .fv_psf import PoorMansFOV
                     chip_fov = PoorMansFOV(detector.chips[chip_i],
                                            lam_min, lam_max)
+                    
+                    #=======================================================
+                    # CA insertion for solving FVPSF issue
+                    #hdr = fits.getheader(opt_train.cmds["SCOPE_PSF_FILE"],2)
+                    #chip_fov.hdu.header["CRVAL1"] = hdr["CRVAL1"]
+                    #chip_fov.hdu.header["CRVAL2"] = hdr["CRVAL2"]
+                    #chip_fov.hdu.header["CRPIX1"] = hdr["CRPIX1"]
+                    #chip_fov.hdu.header["CRPIX2"] = hdr["CRPIX2"]
+                    #print('hdr["CDELT1"]',hdr["CDELT1"])
+                    #chip_fov.hdu.header["CDELT1"] = hdr["CDELT1"]
+                    #chip_fov.hdu.header["CDELT2"] = hdr["CDELT2"]
+                    #chip_fov.hdu.header["CTYPE1"] = hdr["CTYPE1"]
+                    #chip_fov.hdu.header["CTYPE2"] = hdr["CTYPE2"]
+                    #chip_fov.hdu.header["CUNIT1"] = hdr["CUNIT1"]
+                    #chip_fov.hdu.header["CUNIT2"] = hdr["CUNIT2"]
+                    #chip_fov.hdu.header["NAXIS"] = 2
+                    #chip_fov.hdu.header["NAXIS1"] = hdr["NAXIS1"]
+                    #chip_fov.hdu.header["NAXIS2"] = hdr["NAXIS2"]
+                    #=======================================================
                     kernels_masks = opt_train.psf.get_kernel(chip_fov)
+                  #  if psf_m1[0].pix_res != self.pix_res:
+                  #      psf_m1.resample(self.pix_res)
+                   
                     psf_list = [km[0] for km in kernels_masks]
                     mask_list = [km[1] for km in kernels_masks]
                     ########################
@@ -399,20 +421,25 @@ class Source(object):
                     verbose = params["verbose"]
 
                     # image is in units of ph/s/pixel/m2
+                    if np.any(np.isnan(psf) == True):
+                        print("source.py: 402: nan")
+                        print(np.size(psf))
+                        
                     imgslice = self.image_in_range(psf, lam_min, lam_max,
                                                    detector.chips[chip_i],
                                                    pix_res=opt_train.pix_res,
                                                    oversample=oversample,
                                                    sub_pixel=sub_pixel,
                                                    verbose=verbose)
-
+ 
                     if mask is not None:
                         imgslice *= mask.T
                     if image is None:
                         image = imgslice
                     else:
                         image += imgslice
-
+                        if np.any(np.isnan(image) == True):
+                            print("source.py: 438: nan")
             # 3. Apply wavelength-independent spatial effects
             # !!!!!!!!!!!!!! All of these need to be combined into a single
             # function that traces out the path taken by the telescope,
@@ -425,10 +452,11 @@ class Source(object):
                 image = opt_train.apply_tracking(image)
             if params["SCOPE_JITTER_FWHM"] > 0.33 * self.pix_res:
                 image = opt_train.apply_wind_jitter(image)
-
+     
             # 3.5 Scale by telescope area
             image *= opt_train.cmds.area
-
+            if np.any(np.isnan(image) == True):
+                print("source.py: 433. nan")
             # 4. Add backgrounds
             image += (opt_train.n_ph_atmo + opt_train.n_ph_mirror +
                       opt_train.n_ph_ao)
@@ -440,9 +468,13 @@ class Source(object):
             detector._n_ph_mirror = opt_train.n_ph_mirror
             detector._n_ph_ao = opt_train.n_ph_ao
 
-            # 5. Project onto chip
+            # 5. Project onto chip C.A.
+            if np.any(np.isnan(image) == True):
+                print("source.py: 447. nan")
             self.project_onto_chip(image, detector.chips[chip_i])
-
+            if np.any(np.isnan(image) == True):
+                print("source.py: 450. nan")
+   
         ######################################
         # CAUTION WITH THE PSF NORMALISATION #
         ######################################
@@ -460,6 +492,9 @@ class Source(object):
         """
         # This is just a change of pixel scale
         chip.reset()
+        print("---------project on chip---")
+        print(np.max(image))
+        print("---------------------------")  
         scale_factor = self.pix_res / chip.pix_res
         chip_arr = spi.zoom(image, scale_factor, order=1)
         chip_arr *= np.sum(image) / np.sum(chip_arr)
@@ -509,6 +544,11 @@ class Source(object):
                   "verbose"     : False}
 
         params.update(kwargs)
+        #__________________________________________________________________________
+        #CA the oversample params an integer (int64)
+        params["oversample"] = np.int64(params["oversample"] )
+        #__________________________________________________________________________
+
         #  no PSF given: use a delta kernel
         if isinstance(psf, type(None)):
             psf = np.zeros((7, 7))
@@ -521,12 +561,17 @@ class Source(object):
 
         # psf given as array: convert to PSF object
         if isinstance(psf, np.ndarray):
+            if np.any(np.isnan(psf) == True):
+                print("source.py: 539: nan")
             arr = deepcopy(psf)
             pix_res = params["pix_res"] / params["oversample"]
             size = psf.shape[0]
             psf = sim_psf.PSF(size, pix_res)
             psf.set_array(arr)
-
+            
+        if np.any(np.isnan(psf.array) == True):
+                print("source.py: 544: nan")
+        
         # .. TODO: There is no provision for chip rotation wrt (x,y) system (OC)
         # Create Chip object if chip described by a string
         if isinstance(chip, str):
@@ -598,7 +643,9 @@ class Source(object):
                   "- Creating layer between [um]:", lam_min, lam_max)
 
         psf_array = np.copy(psf.array)
-
+        if np.any(np.isnan(psf_array) == True):
+            print("source.py: 616: nan")      
+        #---------------CA REMOVED PSF APODIZATION -------------
         # Try to get rid of the sharp edges
         # from .fv_psf import round_edges
        
@@ -624,7 +671,7 @@ class Source(object):
                 psf_array = np.pad(psf_array,
                                    ((pad_x, pad_x-mx),
                                     (pad_y, pad_y-my)),
-                                   mode="constant")
+                                   mode="constant")      
             else:
                 print("PSF", psf.array.shape, "Chip", slice_array.shape)
                 raise ValueError("PSF and Detector chip sizes are odd:")
@@ -656,15 +703,21 @@ class Source(object):
             if np.sum(mask) > 0:
                 slice_array.flat[iju] += ndisum(slice_photons[mask].flat,
                                                 ij, iju)
-
+                
             try:
                 # slice_array = convolve_fft(slice_array, psf.array,
                 #                            allow_huge=True)
                 # make the move to scipy
                 #slice_array = fftconvolve(slice_array, psf_array, mode="same")
+                if np.any(np.isnan(slice_array) == True):
+                    print("source.py: 682: nan")
+                if np.any(np.isnan(psf_array) == True):
+                    print("source.py: 684: nan")
                 slice_array = convolve(slice_array, psf_array, mode="same",method="auto")
+                
             except ValueError:
                 slice_array = convolve(slice_array, psf_array)
+
 
         return slice_array
 
