@@ -1,0 +1,11 @@
+#Mirror     Outer   Inner   Angle  Temp    Coating
+SchPlate    1.1	    0.      0.     0. 	   TC_window.dat
+M6          1.1     0.      0.     0. 	   TC_mirror_silver.dat
+M7          0.7     0.      0.     0. 	   TC_mirror_silver.dat
+M8          0.85    0.      0.     0. 	   TC_mirror_silver.dat
+DM9         0.75    0.      0.     0. 	   TC_mirror_mgf2agal.dat
+DM10        0.75    0.      0.     0. 	   TC_mirror_mgf2agal.dat
+Dichr       0.6     0.      0.     0. 	   TC_lgs_dichroic.dat
+M10         0.6     0.      0.     0. 	   TC_mirror_silver.dat
+M11         0.8     0.      45.    0. 	   TC_mirror_silver.dat
+M12         0.8     0.      0.     0. 	   TC_mirror_silver.dat
