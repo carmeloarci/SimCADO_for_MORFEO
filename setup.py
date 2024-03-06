@@ -20,7 +20,7 @@ from io import open     # in py3 just an alias to builtin 'open'.
 
 # Version number
 MAJOR = 0
-MINOR = 7
+MINOR = 8
 ATTR = ''
 
 VERSION = '%d.%d%s' % (MAJOR, MINOR, ATTR)
