@@ -999,9 +999,24 @@ class Chip(object):
         image2 = image * dit
 
         # Check for windows systems. np.poisson is limited to 32-bit
+        # C.A. added a check and a warning (also for non nt machine)
+        # correct values will be restored at the returning
+        poisson_limit = False
         if os.name == "nt":
-            image2[image2 > 2.147E9] = 2.147E9      # 2**31 = 2147483648
-
+            if np.max(image2) > 2.147E9:
+                print("_read_out_poisson : image values exceeds limit of 2.147E9")
+                ind_vals = 	(image2>2.147E9).nonzero()
+                vals  = image2[ind_vals]
+                image2[image2 > 2.147E9] = 2.147E9      # 2**31 = 2147483648
+                poisson_limit = True
+        else:
+            if np.max(image2) > ((9*10**18)):
+                print("_read_out_poisson : image values exceeds limit of (9*10**18)")
+                ind_vals = 	(image2>(9*10**18)).nonzero()
+                vals  = image2[ind_vals]
+                image2[image2 > (9*10**18)] = (9*10**18)
+                poisson_limit = True
+                
         # Each DIT is read out individually. This helps prevent overflows
         # due to too large expected photon numbers, at the expense of increased
         # execution time.
@@ -1011,9 +1026,11 @@ class Chip(object):
 
         # Return the average image, corresponding to one DIT
         im_st /= ndit
-        return im_st.astype(np.float32)
-
-
+        # C.A. Check for poisson value limit
+        if poisson_limit is True:
+            im_st[ind_vals] = vals
+        return im_st.astype(np.float32)    
+    
     def _read_noise_frame(self, cmds, n_frames=1):
         """
         Read in read-out-noise from the FITS file specified by FPA_NOISE_PATH
@@ -1035,11 +1052,11 @@ class Chip(object):
             else: shape = = (naxis1, naxis2, n_frames)
 
         """
-
         if cmds["FPA_USE_NOISE"].lower() == "no":
             return np.zeros((self.naxis1, self.naxis2))
-
-        if "gen" in cmds["FPA_NOISE_PATH"].lower():
+        # CA: gen may happen in the path
+        #if "gen" in cmds["FPA_NOISE_PATH"].lower():
+        if find_file(cmds["FPA_NOISE_PATH"]) is False:    
             if cmds["HXRG_OUTPUT_PATH"] is not None:
                 generate_hxrg_noise(cmds)
                 tmp = fits.getdata(cmds["HXRG_OUTPUT_PATH"])
@@ -1057,7 +1074,12 @@ class Chip(object):
             noise_cube = np.zeros((self.naxis1, self.naxis2, n_frames))
 
         if n_frames == 1:
-            return noise_cube[0, :, :]
+# IF ADDED BY C.A. since                 noise_cube = generate_hxrg_noise(cmds)
+# generated array and not cubes (ndim == 2 and not ndim == 3) 
+            if noise_cube.ndim == 2: 
+                return noise_cube[:, :]
+            if noise_cube.ndim == 3: 
+                return noise_cube[0, :, :]
         else:
             return noise_cube
 

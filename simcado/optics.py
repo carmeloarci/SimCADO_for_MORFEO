@@ -375,8 +375,8 @@ class OpticalTrain(object):
         # Really dodgy hack to emulate emissivity - half way between Al and AgAl
         self.ec_ao *= 0.1
 
-        if self.cmds["INST_USE_AO_MIRROR_BG"].lower() == "yes" and \
-           self.cmds["SCOPE_PSF_FILE"].lower() != "scao":
+        if self.cmds["INST_USE_AO_MIRROR_BG"].lower() == "yes":
+            # and \          self.cmds["SCOPE_PSF_FILE"].lower() != "scao":
 
             self.ph_ao = self.ec_ao * self.tc_ao
             self.n_ph_ao = self.ph_ao.photons_in_range(self.lam_bin_edges[0],

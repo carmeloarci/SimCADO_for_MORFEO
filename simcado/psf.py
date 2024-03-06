@@ -1555,6 +1555,9 @@ def make_foreign_PSF_cube(fnames, out_name=None, window=None, pix_res_orig=None,
         if res_f is not None:
             hdu.header["CDELT1"] = (res_f, "[arcsec] pixel resolution")
             hdu.header["CDELT2"] = (res_f, "[arcsec] pixel resolution")
+            hdu.header["CUNIT1"]   = "arcsec"
+            hdu.header["CUNIT2"]   = "arcsec"
+            
         if wave is not None:
             hdu.header["WAVE0"] = (wave, "[micron] - Wavelength of slice")
 

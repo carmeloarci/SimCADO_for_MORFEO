@@ -105,7 +105,8 @@ from scipy.signal import fftconvolve
 
 from astropy.io import fits
 from astropy.io import ascii as ioascii
-from astropy.convolution import convolve
+#from astropy.convolution import convolve
+from scipy.signal import convolve
 import astropy.units as u
 import astropy.constants as c
 
@@ -508,7 +509,6 @@ class Source(object):
                   "verbose"     : False}
 
         params.update(kwargs)
-
         #  no PSF given: use a delta kernel
         if isinstance(psf, type(None)):
             psf = np.zeros((7, 7))
@@ -559,8 +559,8 @@ class Source(object):
             y_min, y_max = chip.y_min, chip.y_max
             x_cen, y_cen = chip.x_cen, chip.y_cen
 
-            naxis1, naxis2 = chip.naxis1, chip.naxis2
-
+            naxis1, naxis2 = chip.naxis1* params["oversample"], chip.naxis2* params["oversample"]
+            
         else:
             # no chip given: use area covered by object arrays
             mask = np.array([True] * len(self._x))
@@ -600,8 +600,10 @@ class Source(object):
         psf_array = np.copy(psf.array)
 
         # Try to get rid of the sharp edges
-        from .fv_psf import round_edges
-        psf_array = round_edges(psf_array, 64, "linear")
+        # from .fv_psf import round_edges
+       
+        # psf_array = round_edges(psf_array, 64, "linear")
+        
         # w2, h2 = np.array(psf_array.shape) // 2
         # threshold = min(psf_array[[0, w2, -1, w2], [h2, 0, h2, -1]])
         # psf_array[psf_array < threshold] = 0
@@ -659,7 +661,8 @@ class Source(object):
                 # slice_array = convolve_fft(slice_array, psf.array,
                 #                            allow_huge=True)
                 # make the move to scipy
-                slice_array = fftconvolve(slice_array, psf_array, mode="same")
+                #slice_array = fftconvolve(slice_array, psf_array, mode="same")
+                slice_array = convolve(slice_array, psf_array, mode="same",method="auto")
             except ValueError:
                 slice_array = convolve(slice_array, psf_array)
 
